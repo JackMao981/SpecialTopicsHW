@@ -6,7 +6,7 @@ import heapq as hq
 import numpy as np
 import itertools
 import math
-counter = itertools.count() 
+counter = itertools.count()
 
 class BBTreeNode():
     def __init__(self, vars = [], constraints = [], objective='', prob=None):
@@ -22,15 +22,15 @@ class BBTreeNode():
         '''
         newprob = pic.Problem.clone(self.prob)
         return BBTreeNode(self.vars, newprob.constraints, self.objective, newprob)
-    
+
     def buildProblem(self):
         '''
         Bulids the initial Picos problem
         '''
         prob=pic.Problem()
-   
-        prob.add_list_of_constraints(self.constraints)    
-        
+
+        prob.add_list_of_constraints(self.constraints)
+
         prob.set_objective('max', self.objective)
         self.prob = prob
         return self.prob
@@ -80,7 +80,29 @@ class BBTreeNode():
         bestnode_vars = root.vars # initialize bestnode_vars to the root vars
 
         #TODO: fill this part in
+        # print('bababababba', root.vars[-1], '\n')
+        lax = 1e-1
+        while(len(heap) > 0):
+            r, c, current = hq.heappop(heap)
+            try:
+                current.prob.solve(solver='cvxopt')
+            except:
+                pass
+            if (float(current.vars[-1]) < float(bestres - lax)):
+                continue
 
-        
+            if current.is_integral():
+                bestres = float(current.vars[-1])
+                bestnode_vars = [float(v.value) for v in current.vars]
+            else:
+                for v in current.vars:
+                    if abs(round(v.value) - float(v.value)) > 1e-2:
+                        left = current.branch_floor(v)
+                        right = current.branch_ceil(v)
+                        hq.heappush(heap, (float(current.vars[-1]), next(counter), left))
+                        hq.heappush(heap, (float(current.vars[-1]), next(counter), right))
+                        break
+
+
+
         return bestres, bestnode_vars
- 
